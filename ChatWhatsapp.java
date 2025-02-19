@@ -3,7 +3,7 @@ import java.io.*;
 
 public class ChatWhatsapp {
     private static final int PORT = 9876;
-    // Cambia la dirección de broadcast según tu red (ej.: "192.168.182.255" o "255.255.255.255")
+    // Cambia la irección de broadcast según tu red (ej.: "192.168.182.255" o "255.255.255.255")
     private static final String BROADCAST_IP = "192.168.182.255";
 
     public static void main(String[] args) {
