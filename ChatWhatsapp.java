@@ -1,5 +1,6 @@
 import java.net.*;
 import java.io.*;
+import java.util.*;
 
 public class ChatWhatsapp {
     private static final int PORT = 9876;
@@ -7,25 +8,24 @@ public class ChatWhatsapp {
     private static final String CONFIG_FILE = "config.txt";
     private static String userName;
     private static BufferedReader reader;
+    private static Set<String> usersConnected = Collections.synchronizedSet(new HashSet<>());
 
     public static void main(String[] args) {
         try {
-            // Inicializar BufferedReader para lectura de la entrada estándar
             reader = new BufferedReader(new InputStreamReader(System.in));
-
-            // Leer el nombre del usuario desde el archivo de configuración
             userName = readUserName();
-            System.out.println("Bienvenido, " + userName + "!");
+
+            // Al conectar, añadir a la lista de usuarios
+            usersConnected.add(userName);
 
             DatagramSocket socket = new DatagramSocket(null);
             socket.setReuseAddress(true);
             socket.bind(new InetSocketAddress(PORT));
             socket.setBroadcast(true);
-            System.out.println("Chat UDP iniciado en el puerto " + PORT);
 
             // Enviar un mensaje de conexión a todos los usuarios
-            String welcomeMessage = userName + " se ha conectado.";
-            sendMessage(socket, welcomeMessage);
+            sendMessage(socket, userName + " se ha conectado.");
+            displayUserList();
 
             // Hilo para recibir mensajes
             Thread receptor = new Thread(() -> {
@@ -35,13 +35,7 @@ public class ChatWhatsapp {
                     while (true) {
                         socket.receive(packet);
                         String message = new String(packet.getData(), 0, packet.getLength());
-
-                        // Evitar mostrar mensajes propios
-                        if (!message.startsWith(userName)) {
-                            System.out.println("Mensaje de " + message);
-                        } else {
-                            System.out.println("Mensaje (eco): " + message);
-                        }
+                        processMessage(socket, message);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -52,10 +46,38 @@ public class ChatWhatsapp {
             // Bucle para enviar mensajes
             String line;
             while ((line = reader.readLine()) != null) {
-                sendMessage(socket, userName + ": " + line);
+                if (line.equalsIgnoreCase("salir")) {
+                    sendMessage(socket, userName + " se ha desconectado.");
+                    break; // Salir del bucle
+                } else {
+                    sendMessage(socket, userName + ": " + line);
+                }
             }
+
+            socket.close();
+            System.out.println("Desconectado del chat.");
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static void processMessage(DatagramSocket socket, String message) {
+        if (message.endsWith("se ha conectado.")) {
+            String newUser = message.split(" ")[0];
+            if (usersConnected.add(newUser)) {
+                System.out.println(newUser + " se ha conectado.");
+                displayUserList();
+                // Responder con la lista de usuarios conectados
+                sendMessage(socket, getUsersListMessage());
+            }
+        } else if (message.endsWith("se ha desconectado.")) {
+            String disconnectedUser = message.split(" ")[0];
+            if (usersConnected.remove(disconnectedUser)) {
+                System.out.println(disconnectedUser + " se ha desconectado.");
+                displayUserList();
+            }
+        } else {
+            System.out.println(message); // Mostrar otros mensajes
         }
     }
 
@@ -68,10 +90,9 @@ public class ChatWhatsapp {
                 e.printStackTrace();
             }
         } else {
-            // Si no existe, pide un nombre y lo guarda en el archivo
             try {
                 System.out.print("Introduce tu nombre: ");
-                String name = reader.readLine(); // Usa el BufferedReader global
+                String name = reader.readLine();
                 saveUserName(name);
                 return name;
             } catch (IOException e) {
@@ -89,10 +110,32 @@ public class ChatWhatsapp {
         }
     }
 
-    private static void sendMessage(DatagramSocket socket, String message) throws IOException {
-        byte[] data = message.getBytes();
-        InetAddress broadcastAddress = InetAddress.getByName(BROADCAST_IP);
-        DatagramPacket packet = new DatagramPacket(data, data.length, broadcastAddress, PORT);
-        socket.send(packet);
+    private static void sendMessage(DatagramSocket socket, String message) {
+        try {
+            byte[] data = message.getBytes();
+            InetAddress broadcastAddress = InetAddress.getByName(BROADCAST_IP);
+            DatagramPacket packet = new DatagramPacket(data, data.length, broadcastAddress, PORT);
+            socket.send(packet);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String getUsersListMessage() {
+        StringBuilder userList = new StringBuilder("Usuarios conectados: [");
+        synchronized (usersConnected) {
+            for (String user : usersConnected) {
+                userList.append(user).append(", ");
+            }
+        }
+        if (userList.length() > 0) {
+            userList.setLength(userList.length() - 2); // Eliminar la última coma
+        }
+        userList.append("]");
+        return userList.toString();
+    }
+
+    private static void displayUserList() {
+        System.out.println(getUsersListMessage());
     }
 }
