@@ -18,22 +18,13 @@ public class ChatModel {
     public ChatModel(String userName) throws IOException {
         this.userName = userName;
         connectedUsers = FXCollections.observableArrayList();
+        // Añadir al usuario local a la lista en el hilo de JavaFX.
         Platform.runLater(() -> connectedUsers.add(userName));
 
         socket = new DatagramSocket(null);
         socket.setReuseAddress(true);
         socket.bind(new InetSocketAddress(PORT));
         socket.setBroadcast(true);
-
-        // Al cerrar la aplicación (por ejemplo, al pulsar la X), se envía el mensaje de desconexión y se cierra el socket.
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                sendMessage(userName + " se ha desconectado.");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            close();
-        }));
     }
 
     public void sendMessage(String message) throws IOException {
@@ -60,22 +51,47 @@ public class ChatModel {
                     }
                     String message = new String(packet.getData(), 0, packet.getLength());
 
+                    // Si se recibe la lista completa de usuarios:
                     if (message.startsWith("Usuarios conectados: [")) {
                         updateUserList(message);
                         Platform.runLater(() -> onMessageReceived.accept(message));
-                    } else if (message.endsWith("se ha conectado.")) {
+                    }
+                    // Si se recibe un mensaje de conexión:
+                    else if (message.endsWith("se ha conectado.")) {
                         String newUser = message.split(" ")[0];
+                        if (!newUser.equals(userName)) {
+                            Platform.runLater(() -> {
+                                if (!connectedUsers.contains(newUser)) {
+                                    connectedUsers.add(newUser);
+                                }
+                            });
+                            // Responder con confirmación para notificar que estoy escuchando
+                            try {
+                                sendMessage("confirmacion: " + userName);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        Platform.runLater(() -> onMessageReceived.accept(message));
+                    }
+                    // Si se recibe un mensaje de confirmación:
+                    else if (message.startsWith("confirmacion:")) {
+                        String confirmUser = message.substring("confirmacion:".length()).trim();
                         Platform.runLater(() -> {
-                            if (!connectedUsers.contains(newUser)) {
-                                connectedUsers.add(newUser);
+                            if (!connectedUsers.contains(confirmUser)) {
+                                connectedUsers.add(confirmUser);
                             }
                         });
-                        Platform.runLater(() -> onMessageReceived.accept(message));
-                    } else if (message.endsWith("se ha desconectado.")) {
+                        Platform.runLater(() -> onMessageReceived.accept("Confirmación recibida de " + confirmUser));
+                    }
+                    // Si se recibe un mensaje de desconexión:
+                    else if (message.endsWith("se ha desconectado.")) {
                         String disconnectedUser = message.split(" ")[0];
                         Platform.runLater(() -> connectedUsers.remove(disconnectedUser));
                         Platform.runLater(() -> onMessageReceived.accept(message));
-                    } else {
+                    }
+                    // Mensajes normales o eco:
+                    else {
                         if (message.startsWith(userName + ":")) {
                             Platform.runLater(() -> onMessageReceived.accept("mensaje (eco): " + message));
                         } else {
@@ -93,6 +109,10 @@ public class ChatModel {
         receiverThread.start();
     }
 
+    /**
+     * Actualiza la lista de usuarios conectados a partir de un mensaje con formato:
+     * "Usuarios conectados: [usuario1, usuario2, ...]"
+     */
     private void updateUserList(String message) {
         int startIndex = message.indexOf('[');
         int endIndex = message.indexOf(']');
