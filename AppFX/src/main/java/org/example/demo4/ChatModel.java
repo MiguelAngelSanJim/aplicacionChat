@@ -1,5 +1,6 @@
 package org.example.demo4;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import java.net.*;
@@ -17,13 +18,22 @@ public class ChatModel {
     public ChatModel(String userName) throws IOException {
         this.userName = userName;
         connectedUsers = FXCollections.observableArrayList();
-        // Añade el usuario local a la lista de conectados.
-        connectedUsers.add(userName);
+        Platform.runLater(() -> connectedUsers.add(userName));
 
         socket = new DatagramSocket(null);
         socket.setReuseAddress(true);
         socket.bind(new InetSocketAddress(PORT));
         socket.setBroadcast(true);
+
+        // Al cerrar la aplicación (por ejemplo, al pulsar la X), se envía el mensaje de desconexión y se cierra el socket.
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                sendMessage(userName + " se ha desconectado.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            close();
+        }));
     }
 
     public void sendMessage(String message) throws IOException {
@@ -42,7 +52,6 @@ public class ChatModel {
                     try {
                         socket.receive(packet);
                     } catch (SocketException se) {
-                        // Si el socket está cerrado, salimos del bucle sin imprimir la traza.
                         if (socket.isClosed()) {
                             return;
                         } else {
@@ -51,24 +60,31 @@ public class ChatModel {
                     }
                     String message = new String(packet.getData(), 0, packet.getLength());
 
-                    // Procesar el mensaje recibido:
-                    if (message.startsWith(userName)) {
-                        onMessageReceived.accept("mensaje (eco): " + message);
-                    } else {
-                        if (message.endsWith("se ha conectado.")) {
-                            String[] parts = message.split(" ");
-                            if (parts.length > 0) {
-                                String newUser = parts[0];
-                                if (!connectedUsers.contains(newUser)) {
-                                    connectedUsers.add(newUser);
-                                }
+                    if (message.startsWith("Usuarios conectados: [")) {
+                        updateUserList(message);
+                        Platform.runLater(() -> onMessageReceived.accept(message));
+                    } else if (message.endsWith("se ha conectado.")) {
+                        String newUser = message.split(" ")[0];
+                        Platform.runLater(() -> {
+                            if (!connectedUsers.contains(newUser)) {
+                                connectedUsers.add(newUser);
                             }
+                        });
+                        Platform.runLater(() -> onMessageReceived.accept(message));
+                    } else if (message.endsWith("se ha desconectado.")) {
+                        String disconnectedUser = message.split(" ")[0];
+                        Platform.runLater(() -> connectedUsers.remove(disconnectedUser));
+                        Platform.runLater(() -> onMessageReceived.accept(message));
+                    } else {
+                        if (message.startsWith(userName + ":")) {
+                            Platform.runLater(() -> onMessageReceived.accept("mensaje (eco): " + message));
+                        } else {
+                            Platform.runLater(() -> onMessageReceived.accept(message));
                         }
-                        onMessageReceived.accept(message);
                     }
                 }
             } catch (IOException e) {
-                if (!socket.isClosed()) {  // Solo imprime si el error no es por el cierre normal.
+                if (!socket.isClosed()) {
                     e.printStackTrace();
                 }
             }
@@ -77,6 +93,24 @@ public class ChatModel {
         receiverThread.start();
     }
 
+    private void updateUserList(String message) {
+        int startIndex = message.indexOf('[');
+        int endIndex = message.indexOf(']');
+        if (startIndex == -1 || endIndex == -1 || endIndex <= startIndex) {
+            return;
+        }
+        String usersSubstring = message.substring(startIndex + 1, endIndex);
+        String[] userArray = usersSubstring.split(",");
+        Platform.runLater(() -> {
+            connectedUsers.clear();
+            for (String user : userArray) {
+                String trimmedUser = user.trim();
+                if (!trimmedUser.isEmpty()) {
+                    connectedUsers.add(trimmedUser);
+                }
+            }
+        });
+    }
 
     public ObservableList<String> getConnectedUsers() {
         return connectedUsers;
