@@ -27,7 +27,7 @@ public class ChatController {
 
     @FXML
     public void initialize() {
-        // Lee el nombre de usuario desde el archivo o solicita uno mediante diálogo.
+        // Lee el nombre de usuario desde el archivo o lo solicita mediante diálogo.
         userName = readUserName();
         chatArea.appendText("Bienvenido, " + userName + "!\n");
 
@@ -52,11 +52,7 @@ public class ChatController {
         }
 
         // Inicia el receptor UDP; cada mensaje recibido se añade al chat.
-        model.startReceiver(message -> {
-            Platform.runLater(() -> {
-                chatArea.appendText(message + "\n");
-            });
-        });
+        model.startReceiver(message -> Platform.runLater(() -> chatArea.appendText(message + "\n")));
 
         sendButton.setOnAction(event -> sendMessage());
         inputField.setOnAction(event -> sendMessage());
@@ -70,14 +66,15 @@ public class ChatController {
         String message = userName + ": " + text;
         try {
             model.sendMessage(message);
-            // Se muestra un eco del mensaje enviado.
-            chatArea.appendText("mensaje (eco): " + message + "\n");
+            // Eliminamos la línea de eco inmediato para evitar duplicados:
+            // chatArea.appendText("mensaje (eco): " + message + "\n");
             inputField.clear();
         } catch (IOException e) {
             e.printStackTrace();
             chatArea.appendText("Error enviando mensaje: " + e.getMessage() + "\n");
         }
     }
+
 
     private String readUserName() {
         File file = new File(CONFIG_FILE);
@@ -113,9 +110,14 @@ public class ChatController {
         }
     }
 
-    // Se invoca al cerrar la aplicación para liberar el socket.
+    // Al cerrar la aplicación se envía el mensaje de desconexión y se libera el socket.
     public void shutdown() {
         if (model != null) {
+            try {
+                model.sendMessage(userName + " se ha desconectado.");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             model.close();
         }
     }
