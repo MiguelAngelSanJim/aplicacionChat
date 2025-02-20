@@ -18,7 +18,7 @@ public class ChatModel {
     public ChatModel(String userName) throws IOException {
         this.userName = userName;
         connectedUsers = FXCollections.observableArrayList();
-        // Añadir al usuario local a la lista en el hilo de JavaFX.
+        // Añadir el usuario local a la lista en el hilo de JavaFX.
         Platform.runLater(() -> connectedUsers.add(userName));
 
         socket = new DatagramSocket(null);
@@ -51,12 +51,12 @@ public class ChatModel {
                     }
                     String message = new String(packet.getData(), 0, packet.getLength());
 
-                    // Si se recibe la lista completa de usuarios:
+                    // Si se recibe la lista de usuarios, se actualiza la lista y se muestra en el chat.
                     if (message.startsWith("Usuarios conectados: [")) {
                         updateUserList(message);
                         Platform.runLater(() -> onMessageReceived.accept(message));
                     }
-                    // Si se recibe un mensaje de conexión:
+                    // Si se recibe un mensaje de conexión, se actualiza la lista y se responde con confirmación sin mostrarla.
                     else if (message.endsWith("se ha conectado.")) {
                         String newUser = message.split(" ")[0];
                         if (!newUser.equals(userName)) {
@@ -65,7 +65,7 @@ public class ChatModel {
                                     connectedUsers.add(newUser);
                                 }
                             });
-                            // Responder con confirmación para notificar que estoy escuchando
+                            // Enviar confirmación de forma silenciosa (no se muestra en el chat)
                             try {
                                 sendMessage("confirmacion: " + userName);
                             } catch (IOException e) {
@@ -74,7 +74,7 @@ public class ChatModel {
                         }
                         Platform.runLater(() -> onMessageReceived.accept(message));
                     }
-                    // Si se recibe un mensaje de confirmación:
+                    // Si se recibe una confirmación, actualizar la lista sin mostrar nada en el chat.
                     else if (message.startsWith("confirmacion:")) {
                         String confirmUser = message.substring("confirmacion:".length()).trim();
                         Platform.runLater(() -> {
@@ -82,15 +82,14 @@ public class ChatModel {
                                 connectedUsers.add(confirmUser);
                             }
                         });
-                        Platform.runLater(() -> onMessageReceived.accept("Confirmación recibida de " + confirmUser));
                     }
-                    // Si se recibe un mensaje de desconexión:
+                    // Si se recibe un mensaje de desconexión, se actualiza la lista y se muestra en el chat.
                     else if (message.endsWith("se ha desconectado.")) {
                         String disconnectedUser = message.split(" ")[0];
                         Platform.runLater(() -> connectedUsers.remove(disconnectedUser));
                         Platform.runLater(() -> onMessageReceived.accept(message));
                     }
-                    // Mensajes normales o eco:
+                    // Mensajes normales o eco.
                     else {
                         if (message.startsWith(userName + ":")) {
                             Platform.runLater(() -> onMessageReceived.accept("mensaje (eco): " + message));
