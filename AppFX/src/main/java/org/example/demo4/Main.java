@@ -18,11 +18,11 @@ public class Main extends Application {
 
         Scene scene = new Scene(root, 600, 400);
         scene.getStylesheets().add(getClass().getResource("chat.css").toExternalForm());
-        primaryStage.setTitle("Chat UDP JavaFX");
+        primaryStage.setTitle("Chapp");
         primaryStage.setScene(scene);
         primaryStage.show();
 
-        // Al cerrar la ventana se liberan los recursos (cierra el socket)
+        // Al cerrar la ventana se liberan los recursos (cierra el socket).
         primaryStage.setOnCloseRequest(event -> controller.shutdown());
     }
 
