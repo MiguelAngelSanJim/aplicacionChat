@@ -12,6 +12,13 @@ import java.net.*;
 import java.io.*;
 import java.util.function.Consumer;
 
+/**
+ * Modelo de chat que maneja la comunicación entre usuarios utilizando UDP broadcast.
+ * Gestiona el envío y recepción de mensajes, así como la lista de usuarios conectados.
+ *
+ * @author Rubén Matamoros
+ * @author Miguel Ángel Sánchez
+ */
 public class ChatModel {
     private static final int PORT = 9876;
     private static final String BROADCAST_IP = "192.168.182.255";
@@ -20,10 +27,15 @@ public class ChatModel {
     private String userName;
     private ObservableList<User> connectedUsers;
 
+    /**
+     * Constructor del modelo de chat.
+     *
+     * @param userName Nombre del usuario que inicia el chat.
+     * @throws IOException si ocurre un error al inicializar el socket de comunicación.
+     */
     public ChatModel(String userName) throws IOException {
         this.userName = userName;
         connectedUsers = FXCollections.observableArrayList();
-        // Agregar el usuario local (con su estado "En línea") a la lista en el hilo de JavaFX.
         Platform.runLater(() -> connectedUsers.add(new User(userName)));
 
         socket = new DatagramSocket(null);
@@ -31,7 +43,6 @@ public class ChatModel {
         socket.bind(new InetSocketAddress(PORT));
         socket.setBroadcast(true);
 
-        // Shutdown hook: al cerrar la app, notificar desconexión y cerrar el socket.
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 sendMessage(userName + " se ha desconectado.");
@@ -42,6 +53,12 @@ public class ChatModel {
         }));
     }
 
+    /**
+     * Envía un mensaje a todos los usuarios conectados.
+     *
+     * @param message Mensaje a enviar.
+     * @throws IOException si ocurre un error durante el envío del mensaje.
+     */
     public void sendMessage(String message) throws IOException {
         byte[] data = message.getBytes();
         InetAddress broadcastAddress = InetAddress.getByName(BROADCAST_IP);
@@ -49,6 +66,11 @@ public class ChatModel {
         socket.send(packet);
     }
 
+    /**
+     * Inicia el receptor de mensajes en un hilo separado.
+     *
+     * @param onMessageReceived Función de callback para procesar los mensajes recibidos.
+     */
     public void startReceiver(Consumer<String> onMessageReceived) {
         Thread receiverThread = new Thread(() -> {
             try {
@@ -62,47 +84,7 @@ public class ChatModel {
                         else throw se;
                     }
                     String message = new String(packet.getData(), 0, packet.getLength());
-
-                    if (message.startsWith("Usuarios conectados: [")) {
-                        updateUserList(message);
-                        Platform.runLater(() -> onMessageReceived.accept(message));
-                    }
-                    else if (message.endsWith("se ha conectado.")) {
-                        String newUser = message.split(" ")[0];
-                        if (!newUser.equals(userName)) {
-                            Platform.runLater(() -> {
-                                if (!containsUser(newUser))
-                                    connectedUsers.add(new User(newUser));
-                            });
-                            // Enviar confirmación silenciosa (no se muestra en el chat)
-                            try {
-                                sendMessage("confirmacion: " + userName);
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        Platform.runLater(() -> onMessageReceived.accept(message));
-                    }
-                    else if (message.startsWith("confirmacion:")) {
-                        String confirmUser = message.substring("confirmacion:".length()).trim();
-                        if (!confirmUser.equals(userName)) {
-                            Platform.runLater(() -> {
-                                if (!containsUser(confirmUser))
-                                    connectedUsers.add(new User(confirmUser));
-                            });
-                        }
-                    }
-                    else if (message.endsWith("se ha desconectado.")) {
-                        String disconnectedUser = message.split(" ")[0].trim();
-                        Platform.runLater(() -> connectedUsers.removeIf(u -> u.getName().equals(disconnectedUser)));
-                        Platform.runLater(() -> onMessageReceived.accept(message));
-                    }
-                    else {
-                        if (message.startsWith(userName + ":"))
-                            Platform.runLater(() -> onMessageReceived.accept("mensaje (eco): " + message));
-                        else
-                            Platform.runLater(() -> onMessageReceived.accept(message));
-                    }
+                    handleReceivedMessage(message, onMessageReceived);
                 }
             } catch (IOException e) {
                 if (!socket.isClosed())
@@ -111,6 +93,37 @@ public class ChatModel {
         });
         receiverThread.setDaemon(true);
         receiverThread.start();
+    }
+
+    private void handleReceivedMessage(String message, Consumer<String> onMessageReceived) {
+        if (message.startsWith("Usuarios conectados: [")) {
+            updateUserList(message);
+        } else if (message.endsWith("se ha conectado.")) {
+            String newUser = message.split(" ")[0];
+            if (!newUser.equals(userName)) {
+                Platform.runLater(() -> {
+                    if (!containsUser(newUser))
+                        connectedUsers.add(new User(newUser));
+                });
+                try {
+                    sendMessage("confirmacion: " + userName);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        } else if (message.startsWith("confirmacion:")) {
+            String confirmUser = message.substring("confirmacion:".length()).trim();
+            if (!confirmUser.equals(userName)) {
+                Platform.runLater(() -> {
+                    if (!containsUser(confirmUser))
+                        connectedUsers.add(new User(confirmUser));
+                });
+            }
+        } else if (message.endsWith("se ha desconectado.")) {
+            String disconnectedUser = message.split(" ")[0].trim();
+            Platform.runLater(() -> connectedUsers.removeIf(u -> u.getName().equals(disconnectedUser)));
+        }
+        Platform.runLater(() -> onMessageReceived.accept(message));
     }
 
     private boolean containsUser(String name) {
@@ -142,7 +155,9 @@ public class ChatModel {
             socket.close();
     }
 
-    // Clase para representar un usuario conectado.
+    /**
+     * Clase para representar un usuario conectado.
+     */
     public static class User {
         private final String name;
         public User(String name) {
@@ -157,17 +172,16 @@ public class ChatModel {
         }
     }
 
-    // Celda personalizada para el ListView que muestra la lista de usuarios.
-    // Para aplicarla, en el controlador, haz:
-    // listView.setCellFactory(lv -> new ChatModel.UserCell());
+    /**
+     * Celda personalizada para el ListView que muestra la lista de usuarios.
+     */
     public static class UserCell extends ListCell<User> {
         private final HBox hbox = new HBox(5);
         private final Label nameLabel = new Label();
-        private final Circle statusCircle = new Circle(5); // Radio de 5px.
+        private final Circle statusCircle = new Circle(5);
         private final Label statusLabel = new Label("En línea");
 
         public UserCell() {
-            // Asignar las clases de estilo para personalización desde CSS.
             nameLabel.getStyleClass().add("user-name");
             statusCircle.getStyleClass().add("status-circle");
             statusLabel.getStyleClass().add("status-label");
