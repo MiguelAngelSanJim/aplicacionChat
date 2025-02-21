@@ -18,8 +18,9 @@ public class ChatController {
     private TextField inputField;
     @FXML
     private Button sendButton;
+    // Actualizamos el tipo de la ListView para que use ChatModel. User
     @FXML
-    private ListView<String> usersListView;
+    private ListView<ChatModel.User> usersListView;
 
     private ChatModel model;
     private String userName;
@@ -27,7 +28,7 @@ public class ChatController {
 
     @FXML
     public void initialize() {
-        // Lee el nombre de usuario desde el archivo o lo solicita mediante diálogo.
+        // Lee el nombre del usuario desde el archivo o lo solicita mediante diálogo.
         userName = readUserName();
         chatArea.appendText("Bienvenido, " + userName + "!\n");
 
@@ -39,8 +40,9 @@ public class ChatController {
             return;
         }
 
-        // Vincula la lista de usuarios conectados con el ListView.
+        // Vincula la lista de usuarios conectados con el ListView y establece la celda personalizada.
         usersListView.setItems(model.getConnectedUsers());
+        usersListView.setCellFactory(lv -> new ChatModel.UserCell());
 
         // Envía un mensaje de conexión.
         try {
@@ -66,15 +68,12 @@ public class ChatController {
         String message = userName + ": " + text;
         try {
             model.sendMessage(message);
-            // Eliminamos la línea de eco inmediato para evitar duplicados:
-            // chatArea.appendText("mensaje (eco): " + message + "\n");
             inputField.clear();
         } catch (IOException e) {
             e.printStackTrace();
             chatArea.appendText("Error enviando mensaje: " + e.getMessage() + "\n");
         }
     }
-
 
     private String readUserName() {
         File file = new File(CONFIG_FILE);
