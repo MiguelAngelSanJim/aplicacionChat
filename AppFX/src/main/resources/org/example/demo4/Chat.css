@@ -1,10 +1,10 @@
+/* chat.css */
 .root {
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
     -fx-font-size: 14px;
     -fx-background-color: linear-gradient(to bottom, #f5f7fa, #c3cfe2);
 }
 
-/* Estilo para el área de chat */
 .text-area {
     -fx-background-color: #ffffff;
     -fx-background-insets: 0;
@@ -15,7 +15,6 @@
     -fx-padding: 10;
 }
 
-/* Estilo para el campo de entrada */
 .text-field {
     -fx-background-color: #ffffff;
     -fx-background-insets: 0;
@@ -26,7 +25,6 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 2, 0, 0, 1);
 }
 
-/* Estilo para el botón de enviar */
 .button {
     -fx-background-color: linear-gradient(to bottom, #4CAF50, #388E3C);
     -fx-text-fill: #ffffff;
@@ -46,7 +44,6 @@
     -fx-background-color: linear-gradient(to bottom, #388E3C, #2E7D32);
 }
 
-/* Estilo para el ListView de usuarios */
 .list-view {
     -fx-background-color: #ffffff;
     -fx-border-color: #b0bec5;
@@ -55,14 +52,27 @@
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 3, 0, 0, 2);
 }
 
-/* Estilo para cada celda del ListView */
 .list-view .list-cell {
     -fx-padding: 8 10 8 10;
     -fx-border-color: transparent transparent #e0e0e0 transparent;
     -fx-border-width: 0 0 1 0;
 }
 
-/* Selección en el ListView */
-.list-view .list-cell:filled:selected, .list-view .list-cell:filled:selected:hover {
+.list-view .list-cell:filled:selected,
+.list-view .list-cell:filled:selected:hover {
     -fx-background-color: #c8e6c9;
+}
+
+.user-name {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333;
+}
+
+.status-circle {
+    -fx-fill: green;
+}
+
+.status-label {
+    -fx-font-size: 10px;
+    -fx-text-fill: gray;
 }
