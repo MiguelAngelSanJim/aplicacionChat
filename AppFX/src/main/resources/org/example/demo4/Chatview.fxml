@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.Button?>
@@ -11,18 +11,25 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.example.demo4.ChatController">
     <center>
-        <TextArea fx:id="chatArea" editable="false" wrapText="true" />
+        <VBox spacing="5" style="-fx-padding: 10;">
+            <HBox alignment="CENTER">
+                <Text fx:id="chatTitle" text="Chat grupal" />
+            </HBox>
+            <TextArea fx:id="chatArea" editable="false" wrapText="true" VBox.vgrow="ALWAYS" />
+        </VBox>
     </center>
     <bottom>
         <HBox spacing="10" style="-fx-padding: 10;">
             <TextField fx:id="inputField" HBox.hgrow="ALWAYS" />
             <Button fx:id="sendButton" text="Enviar" />
+            <!-- Nuevo botón para vibrar -->
+            <Button fx:id="vibrateButton" text="Zumbido" />
         </HBox>
     </bottom>
     <right>
         <VBox spacing="10" style="-fx-padding: 10;">
-            <Text text="Usuarios en línea" />
-            <ListView fx:id="usersListView" prefWidth="150" />
+            <Text fx:id="onlineUsersTitle" text="Usuarios en línea" />
+            <ListView fx:id="usersListView" prefWidth="150" VBox.vgrow="ALWAYS" />
         </VBox>
     </right>
 </BorderPane>
