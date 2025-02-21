@@ -15,9 +15,6 @@ import java.util.function.Consumer;
 /**
  * Modelo de chat que maneja la comunicación entre usuarios utilizando UDP broadcast.
  * Gestiona el envío y recepción de mensajes, así como la lista de usuarios conectados.
- *
- * @author Rubén Matamoros
- * @author Miguel Ángel Sánchez
  */
 public class ChatModel {
     private static final int PORT = 9876;
@@ -43,6 +40,7 @@ public class ChatModel {
         socket.bind(new InetSocketAddress(PORT));
         socket.setBroadcast(true);
 
+        // Notificar desconexión al cerrar la app.
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try {
                 sendMessage(userName + " se ha desconectado.");
@@ -95,23 +93,30 @@ public class ChatModel {
         receiverThread.start();
     }
 
+    /**
+     * Procesa un mensaje recibido y actualiza la lista de usuarios o la interfaz, según corresponda.
+     */
     private void handleReceivedMessage(String message, Consumer<String> onMessageReceived) {
         if (message.startsWith("Usuarios conectados: [")) {
             updateUserList(message);
-        } else if (message.endsWith("se ha conectado.")) {
+        }
+        else if (message.endsWith("se ha conectado.")) {
             String newUser = message.split(" ")[0];
             if (!newUser.equals(userName)) {
                 Platform.runLater(() -> {
                     if (!containsUser(newUser))
                         connectedUsers.add(new User(newUser));
                 });
+                // Enviamos confirmación, pero no lo mostramos en el chat
                 try {
                     sendMessage("confirmacion: " + userName);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        } else if (message.startsWith("confirmacion:")) {
+        }
+        else if (message.startsWith("confirmacion:")) {
+            // Procesamos la confirmación, pero NO la mostramos en el chat.
             String confirmUser = message.substring("confirmacion:".length()).trim();
             if (!confirmUser.equals(userName)) {
                 Platform.runLater(() -> {
@@ -119,23 +124,36 @@ public class ChatModel {
                         connectedUsers.add(new User(confirmUser));
                 });
             }
-        } else if (message.endsWith("se ha desconectado.")) {
+            return;  // <- IMPORTANTE: salimos sin llamar a onMessageReceived, para no mostrarlo.
+        }
+        else if (message.endsWith("se ha desconectado.")) {
             String disconnectedUser = message.split(" ")[0].trim();
             Platform.runLater(() -> connectedUsers.removeIf(u -> u.getName().equals(disconnectedUser)));
         }
+
+        // Solo mostramos el mensaje en el chat si no es una "confirmacion:"
         Platform.runLater(() -> onMessageReceived.accept(message));
     }
 
+    /**
+     * Verifica si la lista de usuarios ya contiene un usuario con el nombre especificado.
+     */
     private boolean containsUser(String name) {
         return connectedUsers.stream().anyMatch(u -> u.getName().equals(name));
     }
 
+    /**
+     * Actualiza la lista de usuarios conectados a partir de un mensaje
+     * con formato "Usuarios conectados: [usuario1, usuario2, ...]"
+     */
     private void updateUserList(String message) {
         int startIndex = message.indexOf('[');
         int endIndex = message.indexOf(']');
         if (startIndex == -1 || endIndex == -1 || endIndex <= startIndex) return;
+
         String usersSubstring = message.substring(startIndex + 1, endIndex);
         String[] userArray = usersSubstring.split(",");
+
         Platform.runLater(() -> {
             connectedUsers.clear();
             for (String user : userArray) {
@@ -146,10 +164,16 @@ public class ChatModel {
         });
     }
 
+    /**
+     * Devuelve la lista observable de usuarios conectados.
+     */
     public ObservableList<User> getConnectedUsers() {
         return connectedUsers;
     }
 
+    /**
+     * Cierra el socket UDP para finalizar la comunicación.
+     */
     public void close() {
         if (socket != null && !socket.isClosed())
             socket.close();
@@ -160,6 +184,7 @@ public class ChatModel {
      */
     public static class User {
         private final String name;
+
         public User(String name) {
             this.name = name;
         }
