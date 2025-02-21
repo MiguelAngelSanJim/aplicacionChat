@@ -7,9 +7,18 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.stage.Stage;
+
 import java.io.*;
 import java.util.Optional;
 
+/**
+ * Controlador del chat que gestiona la interacción del usuario con la interfaz gráfica.
+ * Maneja el envío y la recepción de mensajes, la gestión de usuarios conectados y la
+ * configuración del nombre de usuario.
+ */
 public class ChatController {
 
     @FXML
@@ -18,7 +27,9 @@ public class ChatController {
     private TextField inputField;
     @FXML
     private Button sendButton;
-    // Actualizamos el tipo de la ListView para que use ChatModel. User
+    /**
+     * Lista de usuarios conectados.
+     */
     @FXML
     private ListView<ChatModel.User> usersListView;
 
@@ -26,9 +37,12 @@ public class ChatController {
     private String userName;
     private static final String CONFIG_FILE = "config.txt";
 
+    /**
+     * Inicializa el controlador, configurando la conexión del usuario y enlazando
+     * los componentes gráficos con la lógica del chat.
+     */
     @FXML
     public void initialize() {
-        // Lee el nombre del usuario desde el archivo o lo solicita mediante diálogo.
         userName = readUserName();
         chatArea.appendText("Bienvenido, " + userName + "!\n");
 
@@ -40,11 +54,9 @@ public class ChatController {
             return;
         }
 
-        // Vincula la lista de usuarios conectados con el ListView y establece la celda personalizada.
         usersListView.setItems(model.getConnectedUsers());
         usersListView.setCellFactory(lv -> new ChatModel.UserCell());
 
-        // Envía un mensaje de conexión.
         try {
             String welcomeMessage = userName + " se ha conectado.";
             model.sendMessage(welcomeMessage);
@@ -53,13 +65,15 @@ public class ChatController {
             chatArea.appendText("Error enviando mensaje de bienvenida: " + e.getMessage() + "\n");
         }
 
-        // Inicia el receptor UDP; cada mensaje recibido se añade al chat.
         model.startReceiver(message -> Platform.runLater(() -> chatArea.appendText(message + "\n")));
 
         sendButton.setOnAction(event -> sendMessage());
         inputField.setOnAction(event -> sendMessage());
     }
 
+    /**
+     * Envía un mensaje al chat si el campo de entrada no está vacío.
+     */
     private void sendMessage() {
         String text = inputField.getText();
         if (text == null || text.trim().isEmpty()) {
@@ -75,6 +89,11 @@ public class ChatController {
         }
     }
 
+    /**
+     * Lee el nombre del usuario desde un archivo de configuración o lo solicita mediante un diálogo.
+     *
+     * @return el nombre de usuario.
+     */
     private String readUserName() {
         File file = new File(CONFIG_FILE);
         if (file.exists()) {
@@ -87,11 +106,25 @@ public class ChatController {
                 e.printStackTrace();
             }
         }
-        // Si no existe o no hay un nombre válido, se solicita mediante un diálogo.
+
+        Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
+        ImageView imageView = new ImageView(icono);
+        imageView.setFitWidth(48);  // Ajusta el tamaño si es necesario
+        imageView.setFitHeight(48);
+
+
         TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Nombre de usuario");
+        dialog.setGraphic(imageView);
+
+        dialog.setTitle("chApp");
         dialog.setHeaderText("Introduce tu nombre de usuario:");
         dialog.setContentText("Nombre:");
+        // Después de crear el Alert, obtenemos su Stage a través del DialogPane
+        Stage alertStage = (Stage) dialog.getDialogPane().getScene().getWindow();
+
+        // Limpiamos los iconos existentes (opcional) y añadimos nuestro icono personalizado
+        alertStage.getIcons().clear();
+        alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
         Optional<String> result = dialog.showAndWait();
         if (result.isPresent() && !result.get().trim().isEmpty()) {
             String name = result.get().trim();
@@ -101,6 +134,11 @@ public class ChatController {
         return "Usuario";
     }
 
+    /**
+     * Guarda el nombre del usuario en un archivo de configuración.
+     *
+     * @param name el nombre de usuario a guardar.
+     */
     private void saveUserName(String name) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(CONFIG_FILE))) {
             writer.write(name);
@@ -109,7 +147,9 @@ public class ChatController {
         }
     }
 
-    // Al cerrar la aplicación se envía el mensaje de desconexión y se libera el socket.
+    /**
+     * Maneja el cierre de la aplicación, enviando un mensaje de desconexión y liberando recursos.
+     */
     public void shutdown() {
         if (model != null) {
             try {
