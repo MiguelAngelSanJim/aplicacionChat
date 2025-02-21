@@ -40,7 +40,7 @@ public class Main extends Application {
 
         Scene scene = new Scene(root, 600, 400);
         primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
-        scene.getStylesheets().add(getClass().getResource("chat.css").toExternalForm());
+        scene.getStylesheets().add(getClass().getResource("ChatLigth.css").toExternalForm());
         primaryStage.setTitle("chApp");
         primaryStage.setScene(scene);
         primaryStage.show();
