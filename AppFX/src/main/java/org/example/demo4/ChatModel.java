@@ -28,7 +28,7 @@ public class ChatModel {
      * Constructor del modelo de chat.
      *
      * @param userName Nombre del usuario que inicia el chat.
-     * @throws IOException si ocurre un error al inicializar el socket de comunicación.
+     * @throws IOException sí ocurre un error al inicializar el socket de comunicación.
      */
     public ChatModel(String userName) throws IOException {
         this.userName = userName;
@@ -55,7 +55,7 @@ public class ChatModel {
      * Envía un mensaje a todos los usuarios conectados.
      *
      * @param message Mensaje a enviar.
-     * @throws IOException si ocurre un error durante el envío del mensaje.
+     * @throws IOException sí ocurre un error durante el envío del mensaje.
      */
     public void sendMessage(String message) throws IOException {
         byte[] data = message.getBytes();
@@ -99,6 +99,7 @@ public class ChatModel {
     private void handleReceivedMessage(String message, Consumer<String> onMessageReceived) {
         if (message.startsWith("Usuarios conectados: [")) {
             updateUserList(message);
+            return; // Evitamos mostrar el mensaje de actualización de usuarios.
         }
         else if (message.endsWith("se ha conectado.")) {
             String newUser = message.split(" ")[0];
@@ -107,31 +108,33 @@ public class ChatModel {
                     if (!containsUser(newUser))
                         connectedUsers.add(new User(newUser));
                 });
-                // Enviamos confirmación, pero no lo mostramos en el chat
+                // Enviamos confirmación, pero no lo mostramos en el chat.
                 try {
-                    sendMessage("confirmacion: " + userName);
+                    sendMessage("confirmación: " + userName);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                return; // Evitamos que se muestre el mensaje de conexión.
             }
         }
-        else if (message.startsWith("confirmacion:")) {
+        else if (message.startsWith("confirmación:")) {
             // Procesamos la confirmación, pero NO la mostramos en el chat.
-            String confirmUser = message.substring("confirmacion:".length()).trim();
+            String confirmUser = message.substring("confirmación:".length()).trim();
             if (!confirmUser.equals(userName)) {
                 Platform.runLater(() -> {
                     if (!containsUser(confirmUser))
                         connectedUsers.add(new User(confirmUser));
                 });
             }
-            return;  // <- IMPORTANTE: salimos sin llamar a onMessageReceived, para no mostrarlo.
+            return;  // Salimos sin llamar a onMessageReceived para no mostrarlo.
         }
         else if (message.endsWith("se ha desconectado.")) {
             String disconnectedUser = message.split(" ")[0].trim();
             Platform.runLater(() -> connectedUsers.removeIf(u -> u.getName().equals(disconnectedUser)));
+            return; // Evitamos mostrar el mensaje de desconexión.
         }
 
-        // Solo mostramos el mensaje en el chat si no es una "confirmacion:"
+        // Solo mostramos el mensaje en el chat si no es de sistema.
         Platform.runLater(() -> onMessageReceived.accept(message));
     }
 
@@ -144,7 +147,7 @@ public class ChatModel {
 
     /**
      * Actualiza la lista de usuarios conectados a partir de un mensaje
-     * con formato "Usuarios conectados: [usuario1, usuario2, ...]"
+     * con formato "Usuarios conectados: [usuario1, usuario2, ...]".
      */
     private void updateUserList(String message) {
         int startIndex = message.indexOf('[');
