@@ -126,37 +126,55 @@ public class ChatController {
      * @return el nombre de usuario.
      */
     private String readUserName() {
-        File file = new File(CONFIG_FILE);
-        if (file.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                String name = br.readLine();
-                if (name != null && !name.trim().isEmpty()) {
-                    return name.trim();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
+    File file = new File(CONFIG_FILE);
+    if (file.exists()) {
+        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+            String name = br.readLine();
+            if (name != null && !name.trim().isEmpty()) {
+                return name.trim();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
-        ImageView imageView = new ImageView(icono);
-        imageView.setFitWidth(48);
-        imageView.setFitHeight(48);
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setGraphic(imageView);
-        dialog.setTitle("chApp");
-        dialog.setHeaderText("Introduce tu nombre de usuario:");
-        dialog.setContentText("Nombre:");
-        Stage alertStage = (Stage) dialog.getDialogPane().getScene().getWindow();
-        alertStage.getIcons().clear();
-        alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
-        Optional<String> result = dialog.showAndWait();
-        if (result.isPresent() && !result.get().trim().isEmpty()) {
-            String name = result.get().trim();
-            saveUserName(name);
-            return name;
-        }
-        return "Usuario";
     }
+
+    Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
+    ImageView imageView = new ImageView(icono);
+    imageView.setFitWidth(48);
+    imageView.setFitHeight(48);
+
+    TextInputDialog dialog = new TextInputDialog();
+    dialog.setGraphic(imageView);
+    dialog.setTitle("chApp");
+    dialog.setHeaderText("Introduce tu nombre de usuario:");
+    dialog.setContentText("Nombre:");
+
+    Stage alertStage = (Stage) dialog.getDialogPane().getScene().getWindow();
+    alertStage.getIcons().clear();
+    alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
+
+    Optional<String> result;
+    do {
+        result = dialog.showAndWait();
+        if (result.isPresent() && result.get().trim().isEmpty()) {
+            // Muestra un mensaje de advertencia si el campo está vacío
+            dialog.setContentText("El nombre no puede estar vacío.\nPor favor, introduce un nombre:\n");
+        }
+    } while (result.isPresent() && result.get().trim().isEmpty());
+
+    if (result.isPresent()) {
+        String name = result.get().trim();
+        saveUserName(name);
+        return name;
+    } else {
+        // Cierra la aplicación si el usuario cancela
+        Platform.exit();
+        System.exit(0); // Opcional, para asegurarte de que la aplicación se cierra
+    }
+
+    return null;
+}
+
 
     /**
      * Guarda el nombre del usuario en un archivo de configuración.
