@@ -1,0 +1,62 @@
+/* Estilos para la ventana de chat privado */
+
+/* Fondo de la ventana de chat privado */
+.root {
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: linear-gradient(to bottom, #e3f2fd, #90caf9);
+}
+
+/* Área de chat */
+.text-area {
+    -fx-background-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+    -fx-control-inner-background: rgba(201, 239, 246, 0.99);
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(41, 35, 35, 0.82), 5, 0, 0, 1);
+    -fx-padding: 10;
+}
+
+/* Campo de entrada */
+.text-field {
+    -fx-background-color: #ffffff;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5;
+    -fx-border-color: #64b5f6; /* borde azul medio */
+    -fx-border-width: 1;
+    -fx-padding: 8 12 8 12;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.1), 2, 0, 0, 1);
+}
+
+/* Botones */
+.button {
+    -fx-background-color: linear-gradient(to bottom, #42a5f5, #1e88e5);
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+    -fx-background-radius: 5;
+    -fx-padding: 8 15 8 15;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.2), 3, 0, 0, 2);
+}
+
+.button:hover {
+    -fx-background-color: linear-gradient(to bottom, #64b5f6, #1976d2);
+}
+
+.button:pressed {
+    -fx-background-color: linear-gradient(to bottom, #1e88e5, #1565c0);
+}
+
+/* Título del chat privado */
+#chatTitle {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+    -fx-fill: #151617;  /* Color azul oscuro */
+}
+
+/* Separador entre elementos */
+.separator {
+    -fx-background-color: #64b5f6;
+    -fx-padding: 1;
+}
