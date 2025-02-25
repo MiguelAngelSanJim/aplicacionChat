@@ -189,10 +189,10 @@ public class ChatController {
 
             Stage stage = new Stage();
             stage.setScene(new Scene(root));
-            stage.setTitle("Chat privado con " + otherUser);
+            stage.setTitle("chApp");
 
             // Cargar el CSS
-            String css = getClass().getResource("privateChatBlack.css").toExternalForm();
+            String css = getClass().getResource("privateChatLight.css").toExternalForm();
             stage.getScene().getStylesheets().add(css);
 
             controller.setStage(stage);
@@ -224,9 +224,18 @@ public class ChatController {
         if (parts.length >= 3 && parts[2].equals(userName)) {
             String fromUser = parts[1];
             Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-            alert.setTitle("Solicitud de Chat Privado");
-            alert.setHeaderText("Solicitud de chat privado de " + fromUser);
-            alert.setContentText("¿Deseas iniciar un chat privado con " + fromUser + "?");
+
+            Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
+            ImageView imageView = new ImageView(icono);
+            imageView.setFitWidth(48);
+            imageView.setFitHeight(48);
+            alert.setGraphic(imageView);
+            alert.setTitle("chApp");
+            alert.setHeaderText("Solicitud de chat privado.");
+            alert.setContentText("¿Aceptas la invitación de " + fromUser + "?");
+            Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+            alertStage.getIcons().clear();
+            alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
             Optional<ButtonType> result = alert.showAndWait();
             if (result.isPresent() && result.get() == ButtonType.OK) {
                 try {
@@ -258,6 +267,14 @@ public class ChatController {
         if (parts.length >= 3 && parts[2].equals(userName)) {
             String otherUser = parts[1];
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/rechazar.png"));
+            ImageView imageView = new ImageView(icono);
+            imageView.setFitWidth(48);
+            imageView.setFitHeight(48);
+            alert.setGraphic(imageView);
+            Stage alertStage = (Stage) alert.getDialogPane().getScene().getWindow();
+            alertStage.getIcons().clear();
+            alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
             alert.setTitle("Solicitud rechazada");
             alert.setHeaderText(null);
             alert.setContentText(otherUser + " ha rechazado tu solicitud de chat privado.");
