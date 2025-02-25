@@ -70,7 +70,8 @@
 /* Celdas seleccionadas */
 .list-view .list-cell:filled:selected,
 .list-view .list-cell:filled:selected:hover {
-    -fx-background-color: #bbdefb;
+    -fx-background-color: linear-gradient(to bottom, #42a5f5, #1e88e5);
+    //BBDEFBFF
 }
 
 /* Nombre del usuario */
@@ -97,5 +98,5 @@
 /* Etiqueta de estado */
 .status-label {
     -fx-font-size: 10px;
-    -fx-text-fill: #1976d2; /* azul intermedio */
+    -fx-text-fill: #151617; /* azul intermedio */
 }
