@@ -6,7 +6,7 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
- 
+
 /**
  * Clase principal de la aplicación que extiende {@link Application} y maneja la inicialización
  * de la interfaz gráfica de usuario basada en JavaFX.
