@@ -10,7 +10,7 @@ public class ChatWhatsapp {
     private static BufferedReader reader;
     private static Set<String> usersConnected = Collections.synchronizedSet(new HashSet<>());
 
-    public static void main(String[] args) {
+    public static void main(String[] args) { 
         try {
             reader = new BufferedReader(new InputStreamReader(System.in));
             userName = readUserName();
