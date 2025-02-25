@@ -5,6 +5,8 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -13,7 +15,8 @@ import java.io.IOException;
  * Controlador para la ventana de chat privado.
  */
 public class PrivateChatController {
-
+    @FXML
+    private Text chatTitle;
     @FXML
     private TextArea chatArea;
     @FXML
@@ -35,9 +38,7 @@ public class PrivateChatController {
         this.myName = myName;
         this.otherUser = otherUser;
         this.model = model;
-
-        // Ajustar el título del área o del Stage (opcional)
-        chatArea.appendText("Chat privado con " + otherUser + "\n");
+        chatTitle.setText("Chat privado con " + otherUser);
 
         // Acción para enviar mensaje
         sendButton.setOnAction(event -> sendPrivateMessage());
@@ -81,6 +82,8 @@ public class PrivateChatController {
      */
     public void setStage(Stage stage) {
         this.stage = stage;
+
+        stage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
     }
 
     /**
