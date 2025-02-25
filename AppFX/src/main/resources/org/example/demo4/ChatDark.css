@@ -72,7 +72,7 @@
 /* Celdas seleccionadas */
 .list-view .list-cell:filled:selected,
 .list-view .list-cell:filled:selected:hover {
-    -fx-background-color: #bbdefb; /* Color de fondo para celdas seleccionadas */
+    -fx-background-color: linear-gradient(to bottom, #1e88e5, #0d47a1); /* Color de fondo para celdas seleccionadas */
     -fx-text-fill: #000000; /* Texto negro para contraste */
 }
 
@@ -101,5 +101,5 @@
 #chatTitle {
     -fx-font-size: 18px;
     -fx-font-weight: bold;
-    -fx-fill: #ffffff;  /* Color azul oscuro, cámbialo según tu preferencia */
+    -fx-fill: #e9eef3;  /* Color azul oscuro, cámbialo según tu preferencia */
 }
