@@ -3,11 +3,10 @@ package org.example.demo4;
 import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextInputDialog;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.text.Text;
@@ -15,30 +14,25 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-/**
- * Controlador del chat que gestiona la interacción del usuario con la interfaz gráfica.
- * Maneja el envío y la recepción de mensajes, la gestión de usuarios conectados y la
- * configuración del nombre de usuario.
- */
 public class ChatController {
 
-    public Text onlineUser;
     @FXML private TextArea chatArea;
     @FXML private TextField inputField;
     @FXML private Button sendButton;
-    @FXML private Button vibrateButton; // Nuevo botón para vibrar
+    @FXML private Button vibrateButton;
     @FXML private ListView<ChatModel.User> usersListView;
+    @FXML private Text onlineUser;
 
     private ChatModel model;
     private String userName;
     private static final String CONFIG_FILE = "config.txt";
 
-    /**
-     * Inicializa el controlador, configurando la conexión del usuario y enlazando
-     * los componentes gráficos con la lógica del chat.
-     */
+    private Map<String, PrivateChatController> openPrivateChats = new HashMap<>();
+
     @FXML
     public void initialize() {
         userName = readUserName();
@@ -52,9 +46,24 @@ public class ChatController {
             return;
         }
 
-        // Vincula la lista de usuarios conectados con el ListView y asigna la celda personalizada.
         usersListView.setItems(model.getConnectedUsers());
-        usersListView.setCellFactory(lv -> new ChatModel.UserCell());
+        usersListView.setCellFactory(lv -> {
+            ChatModel.UserCell cell = new ChatModel.UserCell();
+            cell.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && !cell.isEmpty()) {
+                    ChatModel.User selectedUser = cell.getItem();
+                    if (selectedUser != null && !selectedUser.getName().equals(userName)) {
+                        try {
+                            String request = "privateRequest:" + userName + ":" + selectedUser.getName();
+                            model.sendMessage(request);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            });
+            return cell;
+        });
 
         try {
             String welcomeMessage = userName + " se ha conectado.";
@@ -64,11 +73,17 @@ public class ChatController {
             chatArea.appendText("Error enviando mensaje de bienvenida: " + e.getMessage() + "\n");
         }
 
-        // Inicia el receptor de mensajes. Si se recibe un mensaje que comience por "vibrate:",
-        // se activa el efecto de vibración en el área de chat.
         model.startReceiver(message -> Platform.runLater(() -> {
             if (message.startsWith("vibrate:")) {
                 vibrateScreen();
+            } else if (message.startsWith("privateRequest:")) {
+                handlePrivateRequest(message);
+            } else if (message.startsWith("privateAccept:")) {
+                handlePrivateAccept(message);
+            } else if (message.startsWith("privateReject:")) {
+                handlePrivateReject(message);
+            } else if (message.startsWith("privateMessage:")) {
+                handlePrivateMessage(message);
             } else {
                 chatArea.appendText(message + "\n");
             }
@@ -79,9 +94,6 @@ public class ChatController {
         vibrateButton.setOnAction(event -> sendVibrateMessage());
     }
 
-    /**
-     * Envía el contenido del campo de entrada como mensaje.
-     */
     private void sendMessage() {
         String text = inputField.getText();
         if (text == null || text.trim().isEmpty()) {
@@ -97,9 +109,6 @@ public class ChatController {
         }
     }
 
-    /**
-     * Envía un mensaje especial para activar la vibración en otros usuarios.
-     */
     private void sendVibrateMessage() {
         try {
             model.sendMessage("vibrate:" + userName);
@@ -108,9 +117,6 @@ public class ChatController {
         }
     }
 
-    /**
-     * Aplica un efecto de vibración (shake) al área de chat.
-     */
     private void vibrateScreen() {
         TranslateTransition tt = new TranslateTransition(Duration.millis(50), chatArea);
         tt.setFromX(0);
@@ -120,67 +126,39 @@ public class ChatController {
         tt.play();
     }
 
-    /**
-     * Lee el nombre del usuario desde un archivo de configuración o lo solicita mediante un diálogo.
-     *
-     * @return el nombre de usuario.
-     */
     private String readUserName() {
-    File file = new File(CONFIG_FILE);
-    if (file.exists()) {
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            String name = br.readLine();
-            if (name != null && !name.trim().isEmpty()) {
-                return name.trim();
+        File file = new File(CONFIG_FILE);
+        if (file.exists()) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                String name = br.readLine();
+                if (name != null && !name.trim().isEmpty()) {
+                    return name.trim();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
+        Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
+        ImageView imageView = new ImageView(icono);
+        imageView.setFitWidth(48);
+        imageView.setFitHeight(48);
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setGraphic(imageView);
+        dialog.setTitle("chApp");
+        dialog.setHeaderText("Introduce tu nombre de usuario:");
+        dialog.setContentText("Nombre:");
+        Stage alertStage = (Stage) dialog.getDialogPane().getScene().getWindow();
+        alertStage.getIcons().clear();
+        alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
+        Optional<String> result = dialog.showAndWait();
+        if (result.isPresent() && !result.get().trim().isEmpty()) {
+            String name = result.get().trim();
+            saveUserName(name);
+            return name;
+        }
+        return "Usuario";
     }
 
-    Image icono = new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png"));
-    ImageView imageView = new ImageView(icono);
-    imageView.setFitWidth(48);
-    imageView.setFitHeight(48);
-
-    TextInputDialog dialog = new TextInputDialog();
-    dialog.setGraphic(imageView);
-    dialog.setTitle("chApp");
-    dialog.setHeaderText("Introduce tu nombre de usuario:");
-    dialog.setContentText("Nombre:");
-
-    Stage alertStage = (Stage) dialog.getDialogPane().getScene().getWindow();
-    alertStage.getIcons().clear();
-    alertStage.getIcons().add(new Image(getClass().getResourceAsStream("/org/example/demo4/logo.png")));
-
-    Optional<String> result;
-    do {
-        result = dialog.showAndWait();
-        if (result.isPresent() && result.get().trim().isEmpty()) {
-            // Muestra un mensaje de advertencia si el campo está vacío
-            dialog.setContentText("El nombre no puede estar vacío.\nPor favor, introduce un nombre:\n");
-        }
-    } while (result.isPresent() && result.get().trim().isEmpty());
-
-    if (result.isPresent()) {
-        String name = result.get().trim();
-        saveUserName(name);
-        return name;
-    } else {
-        // Cierra la aplicación si el usuario cancela
-        Platform.exit();
-        System.exit(0); // Opcional, para asegurarte de que la aplicación se cierra
-    }
-
-    return null;
-}
-
-
-    /**
-     * Guarda el nombre del usuario en un archivo de configuración.
-     *
-     * @param name el nombre de usuario a guardar.
-     */
     private void saveUserName(String name) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(CONFIG_FILE))) {
             writer.write(name);
@@ -189,9 +167,46 @@ public class ChatController {
         }
     }
 
-    /**
-     * Maneja el cierre de la aplicación, enviando un mensaje de desconexión y liberando recursos.
-     */
+    private void openPrivateChatWindow(String myName, String otherUser) {
+        if (openPrivateChats.containsKey(otherUser)) {
+            PrivateChatController existingController = openPrivateChats.get(otherUser);
+            Stage existingStage = existingController.getStage();
+            if (existingStage != null) {
+                existingStage.toFront();
+                existingStage.requestFocus();
+            }
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("Chatviewprivate.fxml"));
+            Parent root = loader.load();
+
+            PrivateChatController controller = loader.getController();
+            controller.initData(myName, otherUser, model);
+
+            openPrivateChats.put(otherUser, controller);
+
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Chat privado con " + otherUser);
+
+            // Cargar el CSS
+            String css = getClass().getResource("privateChatBlack.css").toExternalForm();
+            stage.getScene().getStylesheets().add(css);
+
+            controller.setStage(stage);
+
+            stage.setOnCloseRequest(e -> {
+                openPrivateChats.remove(otherUser);
+            });
+
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void shutdown() {
         if (model != null) {
             try {
@@ -200,6 +215,77 @@ public class ChatController {
                 e.printStackTrace();
             }
             model.close();
+        }
+    }
+
+    // Métodos auxiliares para manejar mensajes privados
+    private void handlePrivateRequest(String message) {
+        String[] parts = message.split(":");
+        if (parts.length >= 3 && parts[2].equals(userName)) {
+            String fromUser = parts[1];
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("Solicitud de Chat Privado");
+            alert.setHeaderText("Solicitud de chat privado de " + fromUser);
+            alert.setContentText("¿Deseas iniciar un chat privado con " + fromUser + "?");
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+                try {
+                    model.sendMessage("privateAccept:" + userName + ":" + fromUser);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                openPrivateChatWindow(userName, fromUser);
+            } else {
+                try {
+                    model.sendMessage("privateReject:" + userName + ":" + fromUser);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void handlePrivateAccept(String message) {
+        String[] parts = message.split(":");
+        if (parts.length >= 3 && parts[2].equals(userName)) {
+            String otherUser = parts[1];
+            openPrivateChatWindow(userName, otherUser);
+        }
+    }
+
+    private void handlePrivateReject(String message) {
+        String[] parts = message.split(":");
+        if (parts.length >= 3 && parts[2].equals(userName)) {
+            String otherUser = parts[1];
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Solicitud rechazada");
+            alert.setHeaderText(null);
+            alert.setContentText(otherUser + " ha rechazado tu solicitud de chat privado.");
+            alert.showAndWait();
+        }
+    }
+
+    private void handlePrivateMessage(String message) {
+        String[] parts = message.split(":", 4);
+        if (parts.length == 4) {
+            String sender = parts[1];
+            String recipient = parts[2];
+            String content = parts[3];
+
+            if (recipient.equals(userName) || sender.equals(userName)) {
+                String otherUser = sender.equals(userName) ? recipient : sender;
+                PrivateChatController privateChat = openPrivateChats.get(otherUser);
+
+                if (privateChat == null) {
+                    openPrivateChatWindow(userName, otherUser);
+                    privateChat = openPrivateChats.get(otherUser);
+                }
+
+                if (privateChat != null) {
+                    String senderName = sender.equals(userName) ? "Yo" : sender;
+                    privateChat.receiveMessage(senderName, content);
+                }
+            }
         }
     }
 }
