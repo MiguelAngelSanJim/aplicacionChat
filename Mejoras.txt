@@ -1,4 +1,4 @@
 d    En lugar de mandar broadcast, responder directamente a la ip.
 ✓   Añadir zumbido a tarjetas. prueba
 2
-asjdaosdoas
+HOLA HE CAMBIADO ESTO
