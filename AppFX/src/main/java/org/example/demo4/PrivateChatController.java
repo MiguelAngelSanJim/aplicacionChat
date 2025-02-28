@@ -72,10 +72,15 @@ public class PrivateChatController {
      * Lo llama ChatController cuando detecta un privateMessage para este chat.
      */
     public void receiveMessage(String sender, String content) {
+        // Si el mensaje proviene de mí, ya lo mostré localmente, no lo vuelvo a mostrar.
+        if (sender.equals(myName)) {
+            return;
+        }
         Platform.runLater(() -> {
             chatArea.appendText(sender + ": " + content + "\n");
         });
     }
+
 
     /**
      * Permite a ChatController establecer la Stage asociada a esta ventana.

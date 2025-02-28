@@ -289,20 +289,23 @@ public class ChatController {
             String recipient = parts[2];
             String content = parts[3];
 
-            if (recipient.equals(userName) || sender.equals(userName)) {
-                String otherUser = sender.equals(userName) ? recipient : sender;
-                PrivateChatController privateChat = openPrivateChats.get(otherUser);
+            // Si el mensaje fue enviado por mí, ya lo mostré localmente, se descarta.
+            if (sender.equals(userName)) {
+                return;
+            }
 
+            // Si el mensaje está dirigido a mí...
+            if (recipient.equals(userName)) {
+                PrivateChatController privateChat = openPrivateChats.get(sender);
                 if (privateChat == null) {
-                    openPrivateChatWindow(userName, otherUser);
-                    privateChat = openPrivateChats.get(otherUser);
+                    openPrivateChatWindow(userName, sender);
+                    privateChat = openPrivateChats.get(sender);
                 }
-
                 if (privateChat != null) {
-                    String senderName = sender.equals(userName) ? "Yo" : sender;
-                    privateChat.receiveMessage(senderName, content);
+                    privateChat.receiveMessage(sender, content);
                 }
             }
         }
     }
+
 }
