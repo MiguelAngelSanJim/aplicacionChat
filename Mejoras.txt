@@ -1,6 +1,2 @@
     En lugar de mandar broadcast, responder directamente a la ip.
 ✓   Añadir zumbido a tarjetas. 
-
-
-PRUEBA
-PRUEBA 2
